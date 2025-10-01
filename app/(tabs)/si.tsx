@@ -1,159 +1,93 @@
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, TextInput, Button, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Collapsible } from '@/components/ui/collapsible';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { ScrollView } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import { Fonts } from '@/constants/fonts';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, FontAwesome } from '@expo/vector-icons';
+import { ThemeContext } from '@/app/context/theme-context';
+import React, { useContext, useState } from 'react';
+import { Colors } from '@/constants/theme';
 
 export default function RobotMonitorScreen() {
   const isOnline = true;
+  const { colorScheme, toggleColorScheme } = useContext(ThemeContext);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#1E1E1E' }}
-      headerImage={
-        <IconSymbol
-          size={280}
-          color="#00A2FF"
-          name="robot-outline"
-          style={styles.headerImage}
-        />
-      }
-    >
-      {/* Título */}
+    <ScrollView contentContainerStyle={styles.contentContainer} style={styles.container}>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
           Monitoramento do Robô
         </ThemedText>
+        <Pressable onPress={toggleColorScheme}>
+          {({ pressed }) => (
+            <FontAwesome
+              name={colorScheme === 'dark' ? 'sun-o' : 'moon-o'}
+              size={25}
+              color={Colors[colorScheme ?? 'light'].text}
+              style={{ marginLeft: 10, opacity: pressed ? 0.5 : 1 }}
+            />
+          )}
+        </Pressable>
       </ThemedView>
 
-      {/* Estado Visual do Robô */}
-      <ThemedView style={styles.statusCircleContainer}>
-        <LinearGradient colors={['#00C6FF', '#0072FF']} style={styles.outerCircle}>
-          <View style={styles.innerCircle}>
-            <MaterialCommunityIcons name="robot-outline" size={80} color="#00C6FF" />
-          </View>
-        </LinearGradient>
+      <ThemedView style={styles.loginContainer}>
+        <TextInput
+          style={[styles.input, { color: Colors[colorScheme ?? 'light'].text, backgroundColor: Colors[colorScheme ?? 'light'].background }]} 
+          placeholder="Usuário"
+          placeholderTextColor={Colors[colorScheme ?? 'light'].text}
+          value={username}
+          onChangeText={setUsername}
+        />
+        <TextInput
+          style={[styles.input, { color: Colors[colorScheme ?? 'light'].text, backgroundColor: Colors[colorScheme ?? 'light'].background }]} 
+          placeholder="Senha"
+          placeholderTextColor={Colors[colorScheme ?? 'light'].text}
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+        <Button title="Entrar" onPress={() => console.log("Login: ", username, password)} />
       </ThemedView>
-
-      {/* Caixas de Status */}
-      <Collapsible title="Status de movimentação">
-        <ThemedView style={styles.statusBox}>
-          <ThemedText style={styles.statusBoxText}>
-            O ROBÔ ESTÁ ANDANDO.
-          </ThemedText>
-        </ThemedView>
-      </Collapsible>
-
-      <Collapsible title="Sensores">
-        <ThemedView style={[styles.statusBox, styles.obstacleBox]}>
-          <ThemedText style={styles.statusBoxTextSecondary}>
-            O ROBÔ IDENTIFICOU UM OBSTÁCULO
-          </ThemedText>
-        </ThemedView>
-      </Collapsible>
-
-      <Collapsible title="Status da Conexão">
-        <ThemedView style={styles.connectionStatusBox}>
-          <ThemedText style={styles.connectionText}>Conexão: </ThemedText>
-          <ThemedText
-            style={[
-              styles.connectionText,
-              { color: isOnline ? '#39FF14' : '#FF3131' },
-            ]}
-          >
-            {isOnline ? 'Online' : 'Offline'}
-          </ThemedText>
-          <View
-            style={[
-              styles.connectionDot,
-              { backgroundColor: isOnline ? '#39FF14' : '#FF3131' },
-            ]}
-          />
-        </ThemedView>
-      </Collapsible>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   titleContainer: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 20,
   },
-  statusCircleContainer: {
+  loginContainer: {
+    width: '80%',
+    maxWidth: 400,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
+    marginTop: 20,
   },
-  outerCircle: {
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 5,
-  },
-  innerCircle: {
+  input: {
     width: '100%',
-    height: '100%',
-    backgroundColor: '#1E1E1E',
-    borderRadius: 100,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusBox: {
-    backgroundColor: '#2A2A2A',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 15,
-    alignItems: 'center',
+    height: 50,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
     marginBottom: 15,
   },
-  obstacleBox: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#444',
-  },
-  statusBoxText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  statusBoxTextSecondary: {
-    color: '#999',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  connectionStatusBox: {
-    backgroundColor: '#2A2A2A',
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 15,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  connectionText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-  },
-  connectionDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginLeft: 10,
-  },
 });
+
