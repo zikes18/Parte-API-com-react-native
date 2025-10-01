@@ -1,98 +1,81 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+// screens/index.tsx (HomeScreen)
+import React, { useContext } from 'react';
+import { StyleSheet, TouchableOpacity } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Fonts, Colors } from '@/constants/theme';
+import { ThemeContext } from '@/app/context/theme-context';
 
 export default function HomeScreen() {
+  const { colorScheme, toggleColorScheme } = useContext(ThemeContext);
+
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerBackgroundColor={{ light: Colors.light.background, dark: Colors.dark.background }}
       headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
+        <IconSymbol
+          size={200}
+          color={Colors[colorScheme].tint}
+          name="house.fill"
+          style={styles.headerImage}
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
+        <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
+          Bem-vindo ao App
         </ThemedText>
+        <TouchableOpacity
+          style={[styles.themeButton, { backgroundColor: Colors[colorScheme].cardBackground }]}
+          onPress={toggleColorScheme}
+          accessibilityLabel={`Alternar para modo ${colorScheme === 'dark' ? 'claro' : 'escuro'}`}
+        >
+          <IconSymbol
+            size={24}
+            name={colorScheme === 'dark' ? 'sun.max.fill' : 'moon.fill'}
+            color={Colors[colorScheme].tint}
+          />
+        </TouchableOpacity>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
+      <ThemedText style={[styles.description, { color: Colors[colorScheme].text }]}>
+        Explore as funcionalidades do aplicativo, como criar, listar e enviar robôs.
+      </ThemedText>
+
+      <ThemedView style={[styles.contentContainer, { backgroundColor: Colors[colorScheme].cardBackground, borderColor: Colors[colorScheme].border }]}>
+        <ThemedText type="subtitle">O que você pode fazer:</ThemedText>
+        <ThemedText>- Criar novos robôs na aba Crafting</ThemedText>
+        <ThemedText>- Explorar robôs na aba Explore</ThemedText>
+        <ThemedText>- Enviar dados na aba Enviar</ThemedText>
+        <ThemedText>- Visualizar robôs cadastrados na aba Listar</ThemedText>
       </ThemedView>
     </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  headerImage: {
+    bottom: -60,
+    left: -20,
+    position: 'absolute',
+  },
   titleContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 15,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  themeButton: {
+    padding: 10,
+    borderRadius: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  description: {
+    marginBottom: 15,
+  },
+  contentContainer: {
+    padding: 15,
+    borderRadius: 10,
+    borderWidth: 1,
   },
 });

@@ -1,12 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Collapsible } from '@/components/ui/collapsible';
@@ -21,39 +14,34 @@ type Robo = {
   first_name: string;
   last_name: string;
   email: string;
-  status?: 'active' | 'inactive';
+  status?: 'active' | 'inactive'; // Adicionado para demonstrar indicador de status
 };
 
 export default function ListarScreen() {
   const [robos, setRobos] = useState<Robo[]>([]);
   const [filteredRobos, setFilteredRobos] = useState<Robo[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const colorScheme = useColorScheme();
 
-  const buscarRobos = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('https://web-production-d2cba.up.railway.app/hello');
-      const text = await response.text();
-      console.log('Resposta bruta da API:', text);
-
-      const json = JSON.parse(text);
-      const robosData = (json.data || []).map((robo: Robo) => ({
-        ...robo,
-        status: Math.random() > 0.5 ? 'active' : 'inactive',
-      }));
-
-      setRobos(robosData);
-      setFilteredRobos(robosData);
-    } catch (e) {
-      console.error('Erro ao parsear JSON:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    async function buscarRobos() {
+      try {
+        const response = await fetch('https://web-production-d2cba.up.railway.app/hello');
+        const json = await response.json();
+        const robosData = (json.data || []).map((robo: Robo) => ({
+          ...robo,
+          status: Math.random() > 0.5 ? 'active' : 'inactive', // Simulação de status
+        }));
+        setRobos(robosData);
+        setFilteredRobos(robosData);
+      } catch (error) {
+        console.error('Erro ao buscar robôs:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     buscarRobos();
   }, []);
 
@@ -111,16 +99,6 @@ export default function ListarScreen() {
         />
       </ThemedView>
 
-      <TouchableOpacity
-        style={styles.fetchButton}
-        onPress={buscarRobos}
-        accessibilityLabel="Buscar robôs manualmente"
-      >
-        <ThemedText type="defaultSemiBold" style={styles.fetchButtonText}>
-          Buscar Robôs
-        </ThemedText>
-      </TouchableOpacity>
-
       <Collapsible title="Lista de robôs">
         {loading ? (
           <ActivityIndicator size="large" color="#00D8A2" />
@@ -141,12 +119,7 @@ export default function ListarScreen() {
                   </ThemedText>
                   <ThemedText>{item.email}</ThemedText>
                 </View>
-                <View
-                  style={[
-                    styles.statusDot,
-                    { backgroundColor: item.status === 'active' ? '#00D8A2' : '#FF6347' },
-                  ]}
-                />
+                <View style={[styles.statusDot, { backgroundColor: item.status === 'active' ? '#00D8A2' : '#FF6347' }]} />
                 <TouchableOpacity onPress={() => handleEdit(item.id)} accessibilityLabel="Editar robô">
                   <IconSymbol name="pencil" size={20} color="#FFF" />
                 </TouchableOpacity>
@@ -180,18 +153,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A2A2A',
     padding: 10,
     borderRadius: 8,
-    fontSize: 16,
-  },
-  fetchButton: {
-    backgroundColor: '#00D8A2',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 10,
-    marginBottom: 10,
-  },
-  fetchButtonText: {
-    color: '#000',
     fontSize: 16,
   },
   roboCard: {
