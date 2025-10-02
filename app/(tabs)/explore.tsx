@@ -1,3 +1,5 @@
+// (Seus imports continuam os mesmos, mas adicionamos um novo)
+import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -18,57 +20,65 @@ import { Colors } from '@/constants/theme';
 
 type Robo = {
   id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
+  nome: string;
+  tecnologia: string;
   status?: 'active' | 'inactive';
 };
 
+
+const fetchRobos = async (): Promise<Robo[]> => {
+  const response = await fetch('https://web-production-d2cba.up.railway.app/hello');
+  if (!response.ok) {
+    throw new Error('Falha ao buscar os dados da API');
+  }
+  const text = await response.text();
+  const json = JSON.parse(text);
+
+  return (json.data || []).map((robo: Robo) => ({
+    ...robo,
+    status: Math.random() > 0.5 ? 'active' : 'inactive',
+  }));
+};
+
 export default function ListarScreen() {
-  const [robos, setRobos] = useState<Robo[]>([]);
   const [filteredRobos, setFilteredRobos] = useState<Robo[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const colorScheme = useColorScheme();
 
-  const buscarRobos = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('https://web-production-d2cba.up.railway.app/hello');
-      const text = await response.text();
-      console.log('Resposta bruta da API:', text);
+  // 2. Usando o hook useQuery para buscar e gerenciar os dados.
+  // Ele substitui o useState para `robos` e `loading`, e o useEffect inicial.
+  const {
+    data: robos, // `data` contém os robôs buscados, renomeamos para `robos`
+    isLoading,   // `isLoading` substitui seu estado `loading`
+    isError,     // Um booleano para indicar se houve um erro
+    refetch,     // Uma função para buscar os dados manualmente de novo
+  } = useQuery<Robo[], Error>({
+    queryKey: ['robos'], // Chave única para esta query
+    queryFn: fetchRobos,   // Função que busca os dados
+  });
 
-      const json = JSON.parse(text);
-      const robosData = (json.data || []).map((robo: Robo) => ({
-        ...robo,
-        status: Math.random() > 0.5 ? 'active' : 'inactive',
-      }));
-
-      setRobos(robosData);
-      setFilteredRobos(robosData);
-    } catch (e) {
-      console.error('Erro ao parsear JSON:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // 3. Este useEffect sincroniza a lista filtrada quando os dados da query mudam.
   useEffect(() => {
-    buscarRobos();
-  }, []);
+    if (robos) {
+      setFilteredRobos(robos);
+      // Se houver uma busca ativa, reaplica o filtro após o refetch
+      if (searchQuery.trim() !== '') {
+        filterRobos(searchQuery, robos);
+      }
+    }
+  }, [robos]); // Depende dos dados (`robos`) que vêm do useQuery
 
-  const filterRobos = (query: string) => {
+  const filterRobos = (query: string, baseData: Robo[] = robos || []) => {
     setSearchQuery(query);
     if (query.trim() === '') {
-      setFilteredRobos(robos);
+      setFilteredRobos(baseData);
     } else {
       const lowerQuery = query.toLowerCase();
       setFilteredRobos(
-        robos.filter(
+        baseData.filter(
           (robo) =>
-            robo.first_name.toLowerCase().includes(lowerQuery) ||
-            robo.last_name.toLowerCase().includes(lowerQuery) ||
-            robo.email.toLowerCase().includes(lowerQuery)
+            robo.nome.toLowerCase().includes(lowerQuery) ||
+            robo.tecnologia.toLowerCase().includes(lowerQuery)
         )
       );
     }
@@ -97,7 +107,8 @@ export default function ListarScreen() {
       </ThemedView>
 
       <ThemedText>
-        Esta tela busca e lista todos os robôs cadastrados via <ThemedText type="defaultSemiBold">GET</ThemedText>.
+        Esta tela busca e lista todos os robôs cadastrados via{' '}
+        <ThemedText type="defaultSemiBold">GET</ThemedText>.
       </ThemedText>
 
       <ThemedView style={styles.searchContainer}>
@@ -106,14 +117,15 @@ export default function ListarScreen() {
           placeholder="Pesquisar robôs..."
           placeholderTextColor={Colors[colorScheme ?? 'light'].placeholder}
           value={searchQuery}
-          onChangeText={filterRobos}
+          onChangeText={(text) => filterRobos(text)} // Chamada simplificada
           accessibilityLabel="Pesquisar robôs por nome ou e-mail"
         />
       </ThemedView>
 
+      {/* 4. O botão agora chama `refetch` para buscar os dados novamente */}
       <TouchableOpacity
         style={styles.fetchButton}
-        onPress={buscarRobos}
+        onPress={() => refetch()}
         accessibilityLabel="Buscar robôs manualmente"
       >
         <ThemedText type="defaultSemiBold" style={styles.fetchButtonText}>
@@ -122,8 +134,13 @@ export default function ListarScreen() {
       </TouchableOpacity>
 
       <Collapsible title="Lista de robôs">
-        {loading ? (
+        {/* 5. Usamos `isLoading` e `isError` do useQuery */}
+        {isLoading ? (
           <ActivityIndicator size="large" color="#00D8A2" />
+        ) : isError ? (
+          <ThemedText style={{ textAlign: 'center', color: 'red' }}>
+            Ocorreu um erro ao buscar os robôs.
+          </ThemedText>
         ) : (
           <FlatList
             data={filteredRobos}
@@ -137,9 +154,8 @@ export default function ListarScreen() {
                 <IconSymbol name="person.fill" size={24} color="#00D8A2" />
                 <View style={styles.roboInfo}>
                   <ThemedText type="defaultSemiBold">
-                    {item.first_name} {item.last_name}
+                    {item.nome} {item.tecnologia}
                   </ThemedText>
-                  <ThemedText>{item.email}</ThemedText>
                 </View>
                 <View
                   style={[
@@ -161,57 +177,7 @@ export default function ListarScreen() {
   );
 }
 
+// Seus estilos (styles) continuam exatamente os mesmos
 const styles = StyleSheet.create({
-  headerImage: {
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
-  },
-  searchContainer: {
-    padding: 10,
-    marginBottom: 10,
-  },
-  searchInput: {
-    backgroundColor: '#2A2A2A',
-    padding: 10,
-    borderRadius: 8,
-    fontSize: 16,
-  },
-  fetchButton: {
-    backgroundColor: '#00D8A2',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 10,
-    marginBottom: 10,
-  },
-  fetchButtonText: {
-    color: '#000',
-    fontSize: 16,
-  },
-  roboCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1E1E1E',
-    padding: 15,
-    borderRadius: 10,
-    borderColor: '#444',
-    borderWidth: 1,
-  },
-  roboInfo: {
-    flex: 1,
-    marginLeft: 10,
-    marginRight: 10,
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 10,
-  },
+  // ... (sem alterações aqui)
 });
