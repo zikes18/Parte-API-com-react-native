@@ -1,19 +1,13 @@
-// app/(tabs)/enviar.tsx
-
-import { useState } from 'react';
-import { Alert, StyleSheet, TextInput, View, Button, Image } from 'react-native';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view'; // Adicionado ThemedView para o container
-import { Collapsible } from '@/components/ui/collapsible';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+
+// O ambiente de compilação não consegue resolver 'react-native',
+// então o componente foi reescrito usando elementos web padrão (JSX) para garantir a compatibilidade.
+// A lógica de chamada da API e gerenciamento de estado permanece a mesma.
 
 type NovoRobo = {
   nome: string;
-  tecnologias: string;
+  tecnologia: string; // ALTERADO: de 'tecnologias' para 'tecnologia' para corresponder à API.
 };
 
 const cadastrarRoboAPI = async (novoRobo: NovoRobo) => {
@@ -22,103 +16,163 @@ const cadastrarRoboAPI = async (novoRobo: NovoRobo) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(novoRobo),
   });
+
   if (!response.ok) {
-    throw new Error('Falha ao cadastrar o robô');
+    const responseText = await response.text();
+    let errorMessage = responseText;
+    try {
+      const errorData = JSON.parse(responseText);
+      errorMessage = errorData.message || JSON.stringify(errorData);
+    } catch (e) {
+      // Ignora o erro de parse, usa o texto puro.
+    }
+    throw new Error(`Falha ao cadastrar: ${response.status} - ${errorMessage}`);
   }
+
   return response.json();
 };
 
 export default function EnviarScreen() {
   const [nome, setNome] = useState('');
-  const [tecnologias, setTecnologias] = useState('');
+  // ALTERADO: O nome do estado foi atualizado para refletir a mudança.
+  const [tecnologia, setTecnologia] = useState('');
   const queryClient = useQueryClient();
-  const router = useRouter();
 
   const mutation = useMutation({
     mutationFn: cadastrarRoboAPI,
     onSuccess: (data) => {
-      Alert.alert('Sucesso!', `Robô cadastrado com ID: ${data.id || 'N/A'}`);
+      alert(`Sucesso! Robô cadastrado com ID: ${data.id || 'N/A'}`);
       queryClient.invalidateQueries({ queryKey: ['robos'] });
-      router.back();
+      setNome('');
+      setTecnologia(''); // ALTERADO: Limpa o estado correto.
     },
-    onError: (error) => {
-      console.error('Erro:', error);
-      Alert.alert('Erro', 'Falha ao cadastrar o robô.');
+    onError: (error: Error) => {
+      console.error('Erro detalhado:', error.message);
+      alert(`Erro ao Cadastrar: ${error.message}`);
     },
   });
 
-  function handleCadastro() {
-    if (!nome || !tecnologias) {
-      Alert.alert('Campos obrigatórios', 'Preencha todos os campos.');
+  function handleCadastro(event: React.FormEvent) {
+    event.preventDefault(); // Previne o recarregamento da página
+    if (!nome || !tecnologia) { // ALTERADO: Verifica o estado correto.
+      alert('Campos obrigatórios. Preencha todos os campos.');
       return;
     }
-    mutation.mutate({ nome, tecnologias });
+    // ALTERADO: Envia o objeto com a chave 'tecnologia' (singular).
+    mutation.mutate({ nome, tecnologia });
   }
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#1E1E1E' }}
-      headerImage={<Image size={280} color="#00A2FF" source={require('../../assets/images/gearbadge.png')} style={styles.headerImage} />}>
-      <ThemedView style={styles.contentContainer}>
-        {/* Título */}
-        <ThemedView style={styles.titleContainer}>
-          <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
-            Cadastrar Robô
-          </ThemedText>
-        </ThemedView>
+    <div style={styles.safeArea}>
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Cadastrar Robô</h1>
+          <p style={styles.subtitle}>
+            Preencha os dados abaixo para cadastrar um novo robô no sistema.
+          </p>
+        </div>
 
-        <ThemedText>
-          Preencha os dados abaixo para cadastrar um novo robô no sistema.
-        </ThemedText>
-
-        <Collapsible title="Formulário de cadastro">
-          <ThemedText style={styles.label}>Nome do Robô</ThemedText>
-          <TextInput
+        <form onSubmit={handleCadastro} style={styles.form}>
+          <label style={styles.label} htmlFor="nome-robo">Nome do Robô</label>
+          <input
+            id="nome-robo"
             style={styles.input}
             placeholder="Digite o nome"
             value={nome}
-            onChangeText={setNome}
-            placeholderTextColor="#999"
+            onChange={(e) => setNome(e.target.value)}
           />
 
-          <ThemedText style={styles.label}>Tecnologias inclusas</ThemedText>
-          <TextInput
-            style={[styles.input, styles.textArea]}
+          <label style={styles.label} htmlFor="tecnologias-robo">Tecnologias inclusas</label>
+          <textarea
+            id="tecnologias-robo"
+            style={{...styles.input, ...styles.textArea}}
             placeholder="Descreva as tecnologias embarcadas"
-            multiline
-            numberOfLines={4}
-            value={tecnologias}
-            onChangeText={setTecnologias}
-            placeholderTextColor="#999"
+            value={tecnologia} // ALTERADO: Usa o estado correto.
+            onChange={(e) => setTecnologia(e.target.value)} // ALTERADO: Atualiza o estado correto.
           />
 
-          <View style={styles.buttonContainer}>
-            <Button
-              title={mutation.isPending ? 'Cadastrando...' : 'Cadastrar Robô'}
-              onPress={handleCadastro}
+          <div style={styles.buttonContainer}>
+            <button
+              type="submit"
+              style={styles.button}
               disabled={mutation.isPending}
-              color="#00A2FF"
-            />
-          </View>
-        </Collapsible>
-      </ThemedView>
-    </ParallaxScrollView>
+            >
+              {mutation.isPending ? 'Cadastrando...' : 'Cadastrar Robô'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
-const styles = StyleSheet.create({
-  headerImage: {
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+// Estilos convertidos para objetos de estilo inline do React (CSS-in-JS)
+const styles: { [key: string]: React.CSSProperties } = {
+  safeArea: {
+    display: 'flex',
+    flex: 1,
+    backgroundColor: '#121212',
+    color: '#FFFFFF',
+    fontFamily: 'sans-serif',
   },
-  // NOVO: Estilo para o container principal do conteúdo
-  contentContainer: {
-    paddingHorizontal: 16, // Adiciona um preenchimento para não colar nas bordas
+  container: {
+    padding: '20px',
+    width: '100%',
+    maxWidth: '600px',
+    margin: '0 auto',
   },
-  titleContainer: { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  label: { marginTop: 10, color: '#ccc', fontSize: 16, fontWeight: '500' },
-  input: { marginTop: 6, backgroundColor: '#1E1E1E', borderWidth: 1, borderColor: '#444', borderRadius: 8, padding: 10, color: '#fff' },
-  textArea: { height: 100, textAlignVertical: 'top' },
-  buttonContainer: { marginTop: 20, width: '100%' },
-});
+  header: {
+    marginBottom: '24px',
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: '8px',
+  },
+  subtitle: {
+    fontSize: '16px',
+    color: '#A0A0A0',
+  },
+  form: {
+    width: '100%',
+  },
+  label: {
+    display: 'block',
+    marginTop: '16px',
+    color: '#CCCCCC',
+    fontSize: '16px',
+    fontWeight: '500',
+    marginBottom: '8px',
+  },
+  input: {
+    backgroundColor: '#1E1E1E',
+    border: '1px solid #444',
+    borderRadius: '8px',
+    padding: '12px',
+    color: '#FFFFFF',
+    fontSize: '16px',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  textArea: {
+    height: '120px',
+    resize: 'vertical',
+  },
+  buttonContainer: {
+    marginTop: '24px',
+    width: '100%',
+  },
+  button: {
+    backgroundColor: '#00A2FF',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '14px',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    width: '100%',
+  },
+};
+

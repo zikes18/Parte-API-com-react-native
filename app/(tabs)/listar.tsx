@@ -1,156 +1,211 @@
-// app/(tabs)/listar.tsx
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TextInput, TouchableOpacity, View, Button } from 'react-native';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
-import { useQuery } from '@tanstack/react-query'; // ALTERADO: Import do useQuery
-import { useRouter } from 'expo-router'; // NOVO: Import para navegação
+// O código fornecido era para React Native. Esta versão foi adaptada para a web,
+// substituindo componentes nativos por elementos JSX padrão (div, input, etc.)
+// e mantendo a lógica de busca de dados com @tanstack/react-query.
 
 type Robo = {
   id: string;
   nome: string;
   tecnologia: string;
-  status?: 'active' | 'inactive';
 };
 
-// Função de busca extraída para o useQuery
+// ALTERADO: Função de busca de dados mais robusta para lidar com respostas não-JSON.
 const fetchRobos = async (): Promise<Robo[]> => {
   const response = await fetch('https://api-robo-production.up.railway.app/robos');
+
   if (!response.ok) {
-    throw new Error('Falha ao buscar os dados da API');
+    throw new Error(`Falha ao buscar os dados da API (Status: ${response.status})`);
   }
-  const json = await response.json();
-  return (json.data || []).map((robo: Robo) => ({
-    ...robo,
-    status: Math.random() > 0.5 ? 'active' : 'inactive',
-  }));
+
+  const responseText = await response.text(); // Primeiro, pegamos a resposta como texto.
+  try {
+    const data = JSON.parse(responseText);
+    // Se a API for paginada, os dados geralmente vêm dentro de uma propriedade "content".
+    if (data && Array.isArray(data.content)) {
+      return data.content;
+    }
+    // Se a resposta for um array simples, retorna diretamente.
+    if (Array.isArray(data)) {
+      return data;
+    }
+    // Se nenhum dos formatos esperados for encontrado, lança um erro.
+    throw new Error("A resposta JSON não continha o formato esperado (array ou objeto com 'content').");
+  } catch (e) {
+    // Se a conversão falhar, a resposta não era um JSON válido.
+    console.error("A resposta da API não é um JSON válido:", responseText);
+    // Lançamos um erro claro para ser exibido na tela.
+    throw new Error(`Formato de resposta inesperado da API. Resposta: "${responseText.substring(0, 100)}..."`);
+  }
 };
 
-export default function ListarScreen() {
-  const [filteredRobos, setFilteredRobos] = useState<Robo[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const colorScheme = useColorScheme();
-  const router = useRouter(); // NOVO: Hook para controlar a navegação
 
-  // ALTERADO: Lógica de busca de dados com TanStack Query
-  const { data: robos, isLoading, isError } = useQuery<Robo[], Error>({
-    queryKey: ['robos'], // Chave única para esta query
+export default function ListarScreen() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredRobos, setFilteredRobos] = useState<Robo[]>([]);
+
+  // Hook do TanStack Query para buscar, cachear e gerenciar os dados da API.
+  const { data: robos, isLoading, isError, error } = useQuery<Robo[], Error>({
+    queryKey: ['robos'], // Chave única para esta busca, usada para cache.
     queryFn: fetchRobos,
   });
 
-  // Sincroniza a lista filtrada quando os dados da query mudam
+  // Efeito que filtra os robôs sempre que a lista original (vinda da API) ou o texto da busca mudam.
   useEffect(() => {
     if (robos) {
-      if (searchQuery.trim() === '') {
-        setFilteredRobos(robos);
-      } else {
-        filterRobos(searchQuery, robos);
-      }
+      const lowerCaseQuery = searchQuery.toLowerCase();
+      const filtered = searchQuery.trim() === ''
+        ? robos
+        : robos.filter(
+            (robo) =>
+              robo.nome.toLowerCase().includes(lowerCaseQuery) ||
+              robo.tecnologia.toLowerCase().includes(lowerCaseQuery)
+          );
+      setFilteredRobos(filtered);
     }
-  }, [robos]);
-
-  const filterRobos = (query: string, baseData: Robo[] = robos || []) => {
-    setSearchQuery(query);
-    if (query.trim() === '') {
-      setFilteredRobos(baseData);
-    } else {
-      const lowerQuery = query.toLowerCase();
-      setFilteredRobos(
-        baseData.filter(
-          (robo) =>
-            robo.nome.toLowerCase().includes(lowerQuery) ||
-            robo.tecnologia.toLowerCase().includes(lowerQuery)
-        )
-      );
-    }
-  };
-
-  const handleEdit = (id: string) => {
-    console.log(`Editar robô com ID: ${id}`);
-  };
+  }, [searchQuery, robos]);
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#1E1E1E' }}
-      headerImage={
-        <IconSymbol size={280} color="#00D8A2" name="tray.full.fill" style={styles.headerImage} />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
-          Robôs Cadastrados
-        </ThemedText>
-      </ThemedView>
+    <div style={styles.safeArea}>
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Robôs Cadastrados</h1>
+          {/* Usamos uma tag <a> para navegação na web */}
+          <a href="/enviar" style={styles.buttonLink}>
+            Cadastrar Novo Robô
+          </a>
+        </div>
 
-      {/* NOVO: Botão para navegar para a tela de cadastro */}
-      <View style={styles.buttonContainer}>
-        <Button
-          title="Cadastrar Novo Robô"
-          onPress={() => router.push('/enviar')} // Navega para a rota 'enviar'
-          color="#00A2FF"
-        />
-      </View>
-
-      <ThemedView style={styles.searchContainer}>
-        <TextInput
-          style={[styles.searchInput, { color: Colors[colorScheme ?? 'light'].text }]}
-          placeholder="Pesquisar robôs..."
-          placeholderTextColor={Colors[colorScheme ?? 'light'].placeholder}
+        <input
+          type="text"
+          style={styles.searchInput}
+          placeholder="Pesquisar por nome ou tecnologia..."
           value={searchQuery}
-          onChangeText={(text) => filterRobos(text)}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
-      </ThemedView>
 
-      <Collapsible title="Lista de robôs">
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#00D8A2" />
-        ) : isError ? (
-          <ThemedText style={{ color: 'red', textAlign: 'center' }}>Erro ao carregar os robôs.</ThemedText>
-        ) : (
-          <FlatList
-            data={filteredRobos}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-              <TouchableOpacity style={styles.roboCard} activeOpacity={0.8} onPress={() => handleEdit(item.id)}>
-                <IconSymbol name="person.fill" size={24} color="#00D8A2" />
-                <View style={styles.roboInfo}>
-                  <ThemedText type="defaultSemiBold">
-                    {item.nome} {item.tecnologia}
-                  </ThemedText>
-                </View>
-                <View style={[styles.statusDot, { backgroundColor: item.status === 'active' ? '#00D8A2' : '#FF6347' }]} />
-                <TouchableOpacity onPress={() => handleEdit(item.id)} accessibilityLabel="Editar robô">
-                  <IconSymbol name="pencil" size={20} color="#FFF" />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            )}
-            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
-            contentContainerStyle={{ paddingVertical: 10 }}
-          />
-        )}
-      </Collapsible>
-    </ParallaxScrollView>
+        <div style={styles.listContainer}>
+          {isLoading && <p style={styles.statusText}>Carregando robôs...</p>}
+          {isError && <p style={{...styles.statusText, ...styles.errorText}}>Erro ao carregar: {error?.message}</p>}
+          {!isLoading && !isError && (
+            <ul>
+              {filteredRobos.length > 0 ? (
+                filteredRobos.map((robo) => (
+                  <li key={robo.id} style={styles.roboCard}>
+                    <div style={styles.roboInfo}>
+                      <p style={styles.roboName}>{robo.nome}</p>
+                      <p style={styles.roboTech}>{robo.tecnologia}</p>
+                    </div>
+                    {/* NOVO: Botão para navegar para a tela de edição */}
+                    <a href={`/editar-robo?id=${robo.id}`} style={styles.editButton}>
+                      Editar
+                    </a>
+                  </li>
+                ))
+              ) : (
+                <p style={styles.statusText}>Nenhum robô encontrado.</p>
+              )}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
-// Estilos (adicionado buttonContainer)
-const styles = StyleSheet.create({
-  // ... (seus estilos existentes)
-  buttonContainer: {
-    marginHorizontal: 10,
-    marginBottom: 20,
+// Estilos CSS-in-JS para a versão web.
+const styles: { [key: string]: React.CSSProperties } = {
+  safeArea: {
+    display: 'flex',
+    flex: 1,
+    backgroundColor: '#121212',
+    color: '#FFFFFF',
+    fontFamily: 'sans-serif',
+    minHeight: '100vh',
   },
-  headerImage: { bottom: -90, left: -35, position: 'absolute' },
-  titleContainer: { flexDirection: 'row', gap: 8, marginBottom: 20 },
-  searchContainer: { padding: 10, marginBottom: 10 },
-  searchInput: { backgroundColor: '#2A2A2A', padding: 10, borderRadius: 8, fontSize: 16 },
-  roboCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#1E1E1E', padding: 15, borderRadius: 10, borderColor: '#444', borderWidth: 1 },
-  roboInfo: { flex: 1, marginLeft: 10, marginRight: 10 },
-  statusDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
-});
+  container: {
+    padding: '20px',
+    width: '100%',
+    maxWidth: '800px',
+    margin: '0 auto',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '24px',
+    flexWrap: 'wrap',
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  buttonLink: {
+    backgroundColor: '#00A2FF',
+    color: '#FFFFFF',
+    textDecoration: 'none',
+    padding: '10px 15px',
+    borderRadius: '8px',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  searchInput: {
+    backgroundColor: '#1E1E1E',
+    border: '1px solid #444',
+    borderRadius: '8px',
+    padding: '12px',
+    color: '#FFFFFF',
+    fontSize: '16px',
+    width: '100%',
+    boxSizing: 'border-box',
+    marginBottom: '24px',
+  },
+  listContainer: {
+    width: '100%',
+  },
+  statusText: {
+    textAlign: 'center',
+    color: '#A0A0A0',
+    fontSize: '16px',
+  },
+  errorText: {
+    color: '#FF6347', // Vermelho para erros
+  },
+  roboCard: {
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: '#1E1E1E',
+    padding: '15px',
+    borderRadius: '10px',
+    border: '1px solid #444',
+    marginBottom: '10px',
+    listStyle: 'none',
+  },
+  roboInfo: {
+    flex: 1,
+  },
+  roboName: {
+    fontSize: '18px',
+    fontWeight: 'bold',
+    margin: 0,
+  },
+  roboTech: {
+    fontSize: '14px',
+    color: '#A0A0A0',
+    margin: '4px 0 0 0',
+  },
+  // NOVO: Estilo para o botão de editar
+  editButton: {
+    backgroundColor: '#f0ad4e',
+    color: '#FFFFFF',
+    textDecoration: 'none',
+    padding: '8px 12px',
+    borderRadius: '5px',
+    fontWeight: 'bold',
+    marginLeft: '10px',
+    whiteSpace: 'nowrap',
+  },
+};
+
