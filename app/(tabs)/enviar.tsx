@@ -17,7 +17,7 @@ type NovoRobo = {
 };
 
 const cadastrarRoboAPI = async (novoRobo: NovoRobo) => {
-  const response = await fetch('https://web-production-d2cba.up.railway.app/Hello', {
+  const response = await fetch('https://api-robo-production.up.railway.app/robos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(novoRobo),

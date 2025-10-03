@@ -15,15 +15,14 @@ import { useRouter } from 'expo-router'; // NOVO: Import para navegação
 
 type Robo = {
   id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
+  nome: string;
+  tecnologia: string;
   status?: 'active' | 'inactive';
 };
 
 // Função de busca extraída para o useQuery
 const fetchRobos = async (): Promise<Robo[]> => {
-  const response = await fetch('https://web-production-d2cba.up.railway.app/hello');
+  const response = await fetch('https://api-robo-production.up.railway.app/robos');
   if (!response.ok) {
     throw new Error('Falha ao buscar os dados da API');
   }
@@ -66,9 +65,8 @@ export default function ListarScreen() {
       setFilteredRobos(
         baseData.filter(
           (robo) =>
-            robo.first_name.toLowerCase().includes(lowerQuery) ||
-            robo.last_name.toLowerCase().includes(lowerQuery) ||
-            robo.email.toLowerCase().includes(lowerQuery)
+            robo.nome.toLowerCase().includes(lowerQuery) ||
+            robo.tecnologia.toLowerCase().includes(lowerQuery)
         )
       );
     }
@@ -123,9 +121,8 @@ export default function ListarScreen() {
                 <IconSymbol name="person.fill" size={24} color="#00D8A2" />
                 <View style={styles.roboInfo}>
                   <ThemedText type="defaultSemiBold">
-                    {item.first_name} {item.last_name}
+                    {item.nome} {item.tecnologia}
                   </ThemedText>
-                  <ThemedText>{item.email}</ThemedText>
                 </View>
                 <View style={[styles.statusDot, { backgroundColor: item.status === 'active' ? '#00D8A2' : '#FF6347' }]} />
                 <TouchableOpacity onPress={() => handleEdit(item.id)} accessibilityLabel="Editar robô">
