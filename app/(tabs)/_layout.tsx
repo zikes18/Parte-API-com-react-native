@@ -38,7 +38,7 @@ export default function TabLayout() {
           },
         }}>
         <Tabs.Screen
-          name="si" // nome do arquivo: si.tsx
+          name="home" // nome do arquivo: si.tsx
           options={{
             title: 'Principal',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
@@ -49,15 +49,6 @@ export default function TabLayout() {
           options={{
             title: 'Explore',
             tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-          }}
-        />
-        <Tabs.Screen
-          name="enviar" // nome do arquivo: enviar.tsx
-          options={{
-            title: 'Enviar',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="arrow.up.circle.fill" color={color} />
-            ),
           }}
         />
         <Tabs.Screen

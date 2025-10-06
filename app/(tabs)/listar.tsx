@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 
-// O código fornecido era para React Native. Esta versão foi adaptada para a web,
-// substituindo componentes nativos por elementos JSX padrão (div, input, etc.)
-// e mantendo a lógica de busca de dados com @tanstack/react-query.
-
 type Robo = {
   id: string;
   nome: string;
   tecnologia: string;
 };
 
-// ALTERADO: Função de busca de dados mais robusta para lidar com respostas não-JSON.
 const fetchRobos = async (): Promise<Robo[]> => {
   const response = await fetch('https://api-robo-production.up.railway.app/robos');
 
@@ -19,39 +14,68 @@ const fetchRobos = async (): Promise<Robo[]> => {
     throw new Error(`Falha ao buscar os dados da API (Status: ${response.status})`);
   }
 
-  const responseText = await response.text(); // Primeiro, pegamos a resposta como texto.
+  const responseText = await response.text();
   try {
     const data = JSON.parse(responseText);
-    // Se a API for paginada, os dados geralmente vêm dentro de uma propriedade "content".
     if (data && Array.isArray(data.content)) {
       return data.content;
     }
-    // Se a resposta for um array simples, retorna diretamente.
     if (Array.isArray(data)) {
       return data;
     }
-    // Se nenhum dos formatos esperados for encontrado, lança um erro.
     throw new Error("A resposta JSON não continha o formato esperado (array ou objeto com 'content').");
   } catch (e) {
-    // Se a conversão falhar, a resposta não era um JSON válido.
     console.error("A resposta da API não é um JSON válido:", responseText);
-    // Lançamos um erro claro para ser exibido na tela.
     throw new Error(`Formato de resposta inesperado da API. Resposta: "${responseText.substring(0, 100)}..."`);
   }
 };
+
+// NOVO: Componente para injetar os estilos da barra de rolagem personalizada.
+const CustomScrollbarStyles = () => (
+  <style>
+    {`
+      /* Para navegadores baseados em WebKit (Chrome, Safari, Edge) */
+      .robot-list-container::-webkit-scrollbar {
+        width: 8px; /* Largura da barra de rolagem */
+      }
+
+      .robot-list-container::-webkit-scrollbar-track {
+        background: transparent; /* Fundo da barra de rolagem invisível */
+      }
+
+      .robot-list-container::-webkit-scrollbar-thumb {
+        background-color: transparent; /* Indicador de rolagem invisível por padrão */
+        border-radius: 10px;
+      }
+
+      /* O indicador de rolagem aparece quando o mouse está sobre a lista */
+      .robot-list-container:hover::-webkit-scrollbar-thumb {
+        background-color: #555;
+      }
+
+      .robot-list-container::-webkit-scrollbar-thumb:hover {
+        background-color: #777; /* Cor ao passar o mouse sobre o indicador */
+      }
+
+      /* Para Firefox */
+      .robot-list-container {
+        scrollbar-width: thin;
+        scrollbar-color: #555 transparent;
+      }
+    `}
+  </style>
+);
 
 
 export default function ListarScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRobos, setFilteredRobos] = useState<Robo[]>([]);
 
-  // Hook do TanStack Query para buscar, cachear e gerenciar os dados da API.
   const { data: robos, isLoading, isError, error } = useQuery<Robo[], Error>({
-    queryKey: ['robos'], // Chave única para esta busca, usada para cache.
+    queryKey: ['robos'],
     queryFn: fetchRobos,
   });
 
-  // Efeito que filtra os robôs sempre que a lista original (vinda da API) ou o texto da busca mudam.
   useEffect(() => {
     if (robos) {
       const lowerCaseQuery = searchQuery.toLowerCase();
@@ -68,10 +92,11 @@ export default function ListarScreen() {
 
   return (
     <div style={styles.safeArea}>
+      {/* NOVO: Os estilos da barra de rolagem são adicionados aqui */}
+      <CustomScrollbarStyles />
       <div style={styles.container}>
         <div style={styles.header}>
           <h1 style={styles.title}>Robôs Cadastrados</h1>
-          {/* Usamos uma tag <a> para navegação na web */}
           <a href="/enviar" style={styles.buttonLink}>
             Cadastrar Novo Robô
           </a>
@@ -85,7 +110,8 @@ export default function ListarScreen() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
 
-        <div style={styles.listContainer}>
+        {/* ALTERADO: Adicionado um className para aplicar os estilos da barra de rolagem */}
+        <div style={styles.listContainer} className="robot-list-container">
           {isLoading && <p style={styles.statusText}>Carregando robôs...</p>}
           {isError && <p style={{...styles.statusText, ...styles.errorText}}>Erro ao carregar: {error?.message}</p>}
           {!isLoading && !isError && (
@@ -97,7 +123,6 @@ export default function ListarScreen() {
                       <p style={styles.roboName}>{robo.nome}</p>
                       <p style={styles.roboTech}>{robo.tecnologia}</p>
                     </div>
-                    {/* NOVO: Botão para navegar para a tela de edição */}
                     <a href={`/editar-robo?id=${robo.id}`} style={styles.editButton}>
                       Editar
                     </a>
@@ -114,7 +139,6 @@ export default function ListarScreen() {
   );
 }
 
-// Estilos CSS-in-JS para a versão web.
 const styles: { [key: string]: React.CSSProperties } = {
   safeArea: {
     display: 'flex',
@@ -122,13 +146,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#121212',
     color: '#FFFFFF',
     fontFamily: 'sans-serif',
-    minHeight: '100vh',
+    height: '100vh', // Garante que a div ocupe a altura toda
+    overflow: 'hidden', // Impede a rolagem do corpo da página
   },
   container: {
     padding: '20px',
     width: '100%',
     maxWidth: '800px',
     margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
   },
   header: {
     display: 'flex',
@@ -162,8 +190,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     boxSizing: 'border-box',
     marginBottom: '24px',
   },
+  // ALTERADO: A lista agora tem altura máxima e rolagem vertical.
   listContainer: {
-    width: '100%',
+    flex: 1, // Faz o container da lista ocupar o espaço restante
+    overflowY: 'auto', // Adiciona rolagem vertical quando o conteúdo excede o espaço
+    paddingRight: '10px', // Espaço para evitar que a barra de rolagem sobreponha o conteúdo
   },
   statusText: {
     textAlign: 'center',
@@ -171,7 +202,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '16px',
   },
   errorText: {
-    color: '#FF6347', // Vermelho para erros
+    color: '#FF6347',
   },
   roboCard: {
     display: 'flex',
@@ -196,7 +227,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#A0A0A0',
     margin: '4px 0 0 0',
   },
-  // NOVO: Estilo para o botão de editar
   editButton: {
     backgroundColor: '#f0ad4e',
     color: '#FFFFFF',
@@ -208,4 +238,3 @@ const styles: { [key: string]: React.CSSProperties } = {
     whiteSpace: 'nowrap',
   },
 };
-
