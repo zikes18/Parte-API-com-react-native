@@ -1,5 +1,19 @@
+// Importações necessárias do React Native e Expo
+import { ThemeContext } from '@/components/theme-context'; // Supondo que você tenha este contexto
+import { FontAwesome } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import React, { useEffect, useState } from 'react';
+import { Link } from 'expo-router';
+import React, { useContext, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 
 type Robo = {
   id: string;
@@ -7,13 +21,12 @@ type Robo = {
   tecnologia: string;
 };
 
+// A lógica de fetch continua a mesma
 const fetchRobos = async (): Promise<Robo[]> => {
   const response = await fetch('https://api-robo-production.up.railway.app/robos');
-
   if (!response.ok) {
     throw new Error(`Falha ao buscar os dados da API (Status: ${response.status})`);
   }
-
   const responseText = await response.text();
   try {
     const data = JSON.parse(responseText);
@@ -23,43 +36,20 @@ const fetchRobos = async (): Promise<Robo[]> => {
     if (Array.isArray(data)) {
       return data;
     }
-    throw new Error("A resposta JSON não continha o formato esperado (array ou objeto com 'content').");
+    throw new Error("A resposta JSON não continha o formato esperado.");
   } catch (e) {
     console.error("A resposta da API não é um JSON válido:", responseText);
-    throw new Error(`Formato de resposta inesperado da API. Resposta: "${responseText.substring(0, 100)}..."`);
+    throw new Error(`Formato de resposta inesperado da API.`);
   }
 };
 
-// Componente de barra de rolagem estilizado com a nova paleta de cores
-const CustomScrollbarStyles = () => (
-  <style>
-    {`
-      .robot-list-container::-webkit-scrollbar {
-        width: 8px;
-      }
-      .robot-list-container::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .robot-list-container::-webkit-scrollbar-thumb {
-        background-color: transparent;
-        border-radius: 10px;
-      }
-      .robot-list-container:hover::-webkit-scrollbar-thumb {
-        background-color: #6e42a8; /* Roxo principal do 'enviar.tsx' */
-      }
-      .robot-list-container::-webkit-scrollbar-thumb:hover {
-        background-color: #583586; /* Tom mais escuro do roxo para hover */
-      }
-      .robot-list-container {
-        scrollbar-width: thin;
-        scrollbar-color: #6e42a8 transparent;
-      }
-    `}
-  </style>
-);
-
 
 export default function ListarScreen() {
+  // Assumindo que você tem um contexto de tema para dark/light mode
+  const { colorScheme } = useContext(ThemeContext);
+  const isDarkMode = colorScheme === 'dark';
+  const styles = getStyles(isDarkMode); // Gera os estilos com base no tema
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRobos, setFilteredRobos] = useState<Robo[]>([]);
 
@@ -82,154 +72,174 @@ export default function ListarScreen() {
     }
   }, [searchQuery, robos]);
 
-  return (
-    <div style={styles.safeArea}>
-      <CustomScrollbarStyles />
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <h1 style={styles.title}>Robôs Cadastrados</h1>
-          <a href="/enviar" style={styles.buttonLink}>
-            Cadastrar Novo Robô
-          </a>
-        </div>
+  // Função para renderizar cada item da lista no FlatList
+  const renderRoboItem = ({ item }: { item: Robo }) => (
+    <View style={styles.roboCard}>
+      <View style={styles.roboInfo}>
+        <Text style={styles.roboName}>{item.nome}</Text>
+        <Text style={styles.roboTech}>{item.tecnologia}</Text>
+      </View>
+      <Link href={{ pathname: "/editar-robo", params: { id: item.id } }} asChild>
+        <Pressable style={styles.editButton}>
+          <FontAwesome name="pencil" size={16} color={brandColors.lightText} />
+          <Text style={styles.editButtonText}>Editar</Text>
+        </Pressable>
+      </Link>
+    </View>
+  );
 
-        <input
-          type="text"
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Robôs Cadastrados</Text>
+          <Link href="/enviar" asChild>
+            <Pressable style={styles.buttonLink}>
+              <Text style={styles.buttonLinkText}>Cadastrar Novo</Text>
+            </Pressable>
+          </Link>
+        </View>
+
+        <TextInput
           style={styles.searchInput}
           placeholder="Pesquisar por nome ou tecnologia..."
+          placeholderTextColor={brandColors.placeholder}
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChangeText={setSearchQuery}
+          keyboardAppearance={isDarkMode ? 'dark' : 'light'}
         />
 
-        <div style={styles.listContainer} className="robot-list-container">
-          {isLoading && <p style={styles.statusText}>Carregando robôs...</p>}
-          {isError && <p style={{...styles.statusText, ...styles.errorText}}>Erro ao carregar: {error?.message}</p>}
-          {!isLoading && !isError && (
-            <ul>
-              {filteredRobos.length > 0 ? (
-                filteredRobos.map((robo) => (
-                  <li key={robo.id} style={styles.roboCard}>
-                    <div style={styles.roboInfo}>
-                      <p style={styles.roboName}>{robo.nome}</p>
-                      <p style={styles.roboTech}>{robo.tecnologia}</p>
-                    </div>
-                    <a href={`/editar-robo?id=${robo.id}`} style={styles.editButton}>
-                      Editar
-                    </a>
-                  </li>
-                ))
-              ) : (
-                <p style={styles.statusText}>Nenhum robô encontrado.</p>
-              )}
-            </ul>
-          )}
-        </div>
-      </div>
-    </div>
+        {isLoading && (
+          <ActivityIndicator size="large" color={brandColors.primaryPurple} style={{ marginTop: 20 }} />
+        )}
+        
+        {isError && (
+          <Text style={[styles.statusText, styles.errorText]}>Erro ao carregar: {error?.message}</Text>
+        )}
+        
+        {!isLoading && !isError && (
+          // Usamos FlatList para listas em React Native. É otimizado e eficiente.
+          <FlatList
+            data={filteredRobos}
+            renderItem={renderRoboItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContainer}
+            ListEmptyComponent={<Text style={styles.statusText}>Nenhum robô encontrado.</Text>}
+          />
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
-// ESTILOS ATUALIZADOS COM BASE NO 'enviar.tsx'
-const styles: { [key: string]: React.CSSProperties } = {
+const brandColors = {
+  primaryPurple: '#6e42a8',
+  darkGray: '#3a3a3a',
+  lightText: '#f5f5f7',
+  darkText: '#1c1c1e',
+  placeholder: '#a9a9a9',
+  cardBackgroundLight: '#FFFFFF',
+  cardBackgroundDark: '#1c1c1e',
+  backgroundLight: '#f2f2f7',
+  backgroundDark: '#000000',
+  borderLight: 'rgba(200, 200, 200, 0.6)',
+  borderDark: 'rgba(50, 50, 50, 0.8)',
+};
+
+const getStyles = (isDarkMode: boolean) => StyleSheet.create({
   safeArea: {
-    display: 'flex',
     flex: 1,
-    backgroundColor: '#FFFFFF', // Fundo branco como no tema claro do 'enviar.tsx'
-    color: '#1c1c1e', // Cor de texto padrão escura
-    fontFamily: 'sans-serif',
-    height: '100vh',
-    overflow: 'hidden',
+    backgroundColor: isDarkMode ? brandColors.backgroundDark : brandColors.backgroundLight,
   },
   container: {
-    padding: '20px',
-    width: '100%',
-    maxWidth: '800px',
-    margin: '0 auto',
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100%',
+    flex: 1,
+    padding: 40,
   },
   header: {
-    display: 'flex',
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '24px',
-    flexWrap: 'wrap',
+    marginBottom: 24,
+    flexWrap: 'wrap', // Permite que os itens quebrem a linha em telas pequenas
   },
   title: {
-    fontSize: '28px',
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#1c1c1e', // Título com a cor de texto escura
+    color: isDarkMode ? brandColors.lightText : brandColors.darkText,
   },
   buttonLink: {
-    backgroundColor: '#6e42a8', // Roxo principal do 'enviar.tsx'
-    color: '#FFFFFF',
-    textDecoration: 'none',
-    padding: '10px 15px',
-    borderRadius: '10px', // Mesmo border-radius do botão principal
+    backgroundColor: brandColors.primaryPurple,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+  },
+  buttonLinkText: {
+    color: brandColors.lightText,
     fontWeight: 'bold',
-    textAlign: 'center',
-    transition: 'opacity 0.3s',
+    fontSize: 16,
   },
   searchInput: {
-    width: '100%',
-    height: '50px',
-    backgroundColor: 'rgba(242, 242, 247, 0.9)', // Fundo de input do tema claro
-    borderRadius: '10px',
-    padding: '0 15px',
-    marginBottom: '24px',
-    color: '#1c1c1e', // Cor de texto escura
-    fontSize: '16px',
-    border: '1px solid rgba(200, 200, 200, 0.5)', // Borda sutil como no 'enviar.tsx'
-    boxSizing: 'border-box',
+    height: 50,
+    backgroundColor: isDarkMode ? brandColors.cardBackgroundDark : brandColors.cardBackgroundLight,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginBottom: 24,
+    color: isDarkMode ? brandColors.lightText : brandColors.darkText,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: isDarkMode ? brandColors.borderDark : brandColors.borderLight,
   },
   listContainer: {
-    flex: 1,
-    overflowY: 'auto',
-    paddingRight: '10px',
+    paddingBottom: 20, // Espaçamento no final da lista
   },
   statusText: {
     textAlign: 'center',
-    fontSize: '16px',
-    color: '#a9a9a9', // Cor de placeholder para status
+    fontSize: 16,
+    color: brandColors.placeholder,
+    marginTop: 20,
   },
   errorText: {
     color: '#FF6347',
   },
   roboCard: {
-    display: 'flex',
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: '15px',
-    borderRadius: '8px',
-    border: '1px solid rgba(200, 200, 200, 0.6)', // Borda sutil nos cards
-    marginBottom: '10px',
-    listStyle: 'none',
-    color: '#1c1c1e', // Texto escuro padrão
+    backgroundColor: isDarkMode ? brandColors.cardBackgroundDark : brandColors.cardBackgroundLight,
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    // Sombra para iOS e Android
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDarkMode ? 0.4 : 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
   roboInfo: {
     flex: 1,
   },
   roboName: {
-    fontSize: '18px',
+    fontSize: 18,
     fontWeight: 'bold',
-    margin: 0,
-    color: '#6e42a8', // Nome do robô com a cor primária
+    color: isDarkMode ? brandColors.primaryPurple : brandColors.darkText,
   },
   roboTech: {
-    fontSize: '14px',
-    color: '#3a3a3a', // Cinza escuro para a descrição da tecnologia
-    margin: '4px 0 0 0',
+    fontSize: 14,
+    color: isDarkMode ? brandColors.lightText : brandColors.darkGray,
+    marginTop: 4,
   },
   editButton: {
-    backgroundColor: '#3a3a3a', // Cinza escuro como cor secundária
-    color: '#FFFFFF',
-    textDecoration: 'none',
-    padding: '8px 12px',
-    borderRadius: '5px',
-    fontWeight: 'bold',
-    marginLeft: '10px',
-    whiteSpace: 'nowrap',
-    transition: 'opacity 0.3s',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: brandColors.darkGray,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginLeft: 10,
   },
-};
+  editButtonText: {
+    color: brandColors.lightText,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+});

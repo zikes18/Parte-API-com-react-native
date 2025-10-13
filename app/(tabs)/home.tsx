@@ -1,43 +1,29 @@
-import { ThemeContext } from '@/app/context/theme-context';
+import { ThemeContext } from '@/components/theme-context';
 import { ThemedText } from '@/components/themed-text';
 import { Fonts } from '@/constants/fonts';
 import { FontAwesome } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React, { useContext, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-// Importe LinearGradient após instalar expo-linear-gradient
-import { LinearGradient } from 'expo-linear-gradient'; 
-
-// --- Paleta de cores baseada no seu logo ---
-const brandColors = {
-  primaryPurple: '#6e42a8', // Roxo principal do robô
-  darkGray: '#3a3a3a',     // Cor dos braços e texto do logo
-  lightText: '#f5f5f7',
-  darkText: '#1c1c1e',
-  placeholder: '#a9a9a9',
-  cardBackgroundLight: 'rgba(255, 255, 255, 0.9)',
-  cardBackgroundDark: 'rgba(28, 28, 30, 0.85)',
-};
 
 export default function RobotMonitorScreen() {
+  // Hooks para gerenciar o tema e o estado do formulário
   const { colorScheme, toggleColorScheme } = useContext(ThemeContext);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
   const isDarkMode = colorScheme === 'dark';
-
-  const styles = getStyles(isDarkMode);
+  const styles = getStyles(isDarkMode); // Gera os estilos com base no tema
 
   return (
-    // Usamos LinearGradient como componente de fundo
     <LinearGradient
-      colors={['#6e42a8', '#3a3a3a']} // Roxo para cinza, cores do seu logo
+      colors={[brandColors.primaryPurple, brandColors.darkGray]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.gradientBackground}
     >
       <View style={styles.container}>
         
-        {/* O botão de tema no canto superior direito */}
         <Pressable onPress={toggleColorScheme} style={styles.themeToggleContainer}>
           {({ pressed }) => (
             <FontAwesome
@@ -49,7 +35,6 @@ export default function RobotMonitorScreen() {
           )}
         </Pressable>
 
-        {/* Container para o título principal (sem o logo do robô) */}
         <View style={styles.titleContainer}>
           <ThemedText type="title" style={styles.mainTitle}>
             JRobot Monitor
@@ -58,6 +43,7 @@ export default function RobotMonitorScreen() {
 
         <View style={styles.loginCard}>
           <Text style={styles.loginCardTitle}>Acessar Painel</Text>
+          
           <TextInput
             style={styles.input}
             placeholder="Usuário"
@@ -75,6 +61,7 @@ export default function RobotMonitorScreen() {
             onChangeText={setPassword}
             keyboardAppearance={isDarkMode ? 'dark' : 'light'}
           />
+          
           <Pressable 
             style={({ pressed }) => [styles.loginButton, pressed && styles.loginButtonPressed]} 
             onPress={() => console.log("Login: ", username, password)}
@@ -88,7 +75,16 @@ export default function RobotMonitorScreen() {
   );
 }
 
-// --- CSS (StyleSheet) Dinâmico para o Tema ---
+const brandColors = {
+  primaryPurple: '#6e42a8',
+  darkGray: '#3a3a3a',
+  lightText: '#f5f5f7',
+  darkText: '#1c1c1e',
+  placeholder: '#a9a9a9',
+  cardBackgroundLight: 'rgba(255, 255, 255, 0.9)',
+  cardBackgroundDark: 'rgba(28, 28, 30, 0.85)',
+};
+
 const getStyles = (isDarkMode: boolean) => StyleSheet.create({
   gradientBackground: {
     flex: 1,
@@ -107,11 +103,11 @@ const getStyles = (isDarkMode: boolean) => StyleSheet.create({
   },
   titleContainer: {
     alignItems: 'center',
-    marginBottom: 60, // Aumenta o espaçamento agora que não há logo
+    marginBottom: 60,
   },
-  mainTitle: { // Estilo para o título principal
+  mainTitle: {
     fontFamily: Fonts.rounded,
-    fontSize: 40, // Deixa o título maior para compensar a falta do logo
+    fontSize: 40,
     color: brandColors.lightText,
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
@@ -137,7 +133,7 @@ const getStyles = (isDarkMode: boolean) => StyleSheet.create({
       }
     }),
   },
-  loginCardTitle: { // Renomeado para evitar conflito com mainTitle
+  loginCardTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: isDarkMode ? brandColors.lightText : brandColors.darkText,
@@ -163,7 +159,7 @@ const getStyles = (isDarkMode: boolean) => StyleSheet.create({
     alignItems: 'center',
     borderRadius: 10,
     marginTop: 10,
-    elevation: 5,
+    elevation: 5, // Sombra para Android
   },
   loginButtonPressed: {
     opacity: 0.85,

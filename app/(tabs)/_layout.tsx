@@ -45,9 +45,9 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="explore" // Corresponde a app/(tabs)/explore.tsx
+          name="notif" // Corresponde a app/(tabs)/explore.tsx
           options={{
-            title: 'Explore',
+            title: 'Notificação',
             tabBarIcon: ({ color }) => <IconSymbol size={24} name="safari.fill" color={color} />,
           }}
         />
