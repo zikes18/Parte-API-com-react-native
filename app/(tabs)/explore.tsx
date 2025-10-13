@@ -1,4 +1,10 @@
-// (Seus imports continuam os mesmos, mas adicionamos um novo)
+import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import { Collapsible } from '@/components/ui/collapsible';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Fonts } from '@/constants/theme'; // Ajuste o caminho se necessário
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import {
@@ -9,14 +15,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Collapsible } from '@/components/ui/collapsible';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+
+// --- Paleta de cores do seu app para consistência ---
+const brandColors = {
+  primaryPurple: '#6e42a8',
+  darkGray: '#3a3a3a',
+  lightText: '#f5f5f7',
+  darkText: '#1c1c1e',
+  placeholder: '#a9a9a9',
+  cardBackground: '#2C2C2E', // Cor de fundo para os cards
+  statusActive: '#28a745',   // Verde para status ativo
+  statusInactive: '#dc3545', // Vermelho para status inativo
+};
 
 type Robo = {
   id: string;
@@ -24,7 +34,6 @@ type Robo = {
   tecnologia: string;
   status?: 'active' | 'inactive';
 };
-
 
 const fetchRobos = async (): Promise<Robo[]> => {
   const response = await fetch('https://web-production-d2cba.up.railway.app/hello');
@@ -44,58 +53,47 @@ export default function ListarScreen() {
   const [filteredRobos, setFilteredRobos] = useState<Robo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const colorScheme = useColorScheme();
+  const styles = getStyles(colorScheme); // Estilos dinâmicos
 
-  // 2. Usando o hook useQuery para buscar e gerenciar os dados.
-  // Ele substitui o useState para `robos` e `loading`, e o useEffect inicial.
   const {
-    data: robos, // `data` contém os robôs buscados, renomeamos para `robos`
-    isLoading,   // `isLoading` substitui seu estado `loading`
-    isError,     // Um booleano para indicar se houve um erro
-    refetch,     // Uma função para buscar os dados manualmente de novo
+    data: robos,
+    isLoading,
+    isError,
+    refetch,
   } = useQuery<Robo[], Error>({
-    queryKey: ['robos'], // Chave única para esta query
-    queryFn: fetchRobos,   // Função que busca os dados
+    queryKey: ['robos'],
+    queryFn: fetchRobos,
   });
 
-  // 3. Este useEffect sincroniza a lista filtrada quando os dados da query mudam.
   useEffect(() => {
     if (robos) {
-      setFilteredRobos(robos);
-      // Se houver uma busca ativa, reaplica o filtro após o refetch
-      if (searchQuery.trim() !== '') {
-        filterRobos(searchQuery, robos);
+      const baseData = robos || [];
+      if (searchQuery.trim() === '') {
+        setFilteredRobos(baseData);
+      } else {
+        const lowerQuery = searchQuery.toLowerCase();
+        setFilteredRobos(
+          baseData.filter(
+            (robo) =>
+              robo.nome.toLowerCase().includes(lowerQuery) ||
+              robo.tecnologia.toLowerCase().includes(lowerQuery)
+          )
+        );
       }
     }
-  }, [robos]); // Depende dos dados (`robos`) que vêm do useQuery
-
-  const filterRobos = (query: string, baseData: Robo[] = robos || []) => {
-    setSearchQuery(query);
-    if (query.trim() === '') {
-      setFilteredRobos(baseData);
-    } else {
-      const lowerQuery = query.toLowerCase();
-      setFilteredRobos(
-        baseData.filter(
-          (robo) =>
-            robo.nome.toLowerCase().includes(lowerQuery) ||
-            robo.tecnologia.toLowerCase().includes(lowerQuery)
-        )
-      );
-    }
-  };
+  }, [robos, searchQuery]);
 
   const handleEdit = (id: string) => {
     console.log(`Editar robô com ID: ${id}`);
-    // Implementar lógica de edição aqui
   };
 
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#1E1E1E' }}
+      headerBackgroundColor={{ light: brandColors.darkGray, dark: brandColors.darkGray }}
       headerImage={
         <IconSymbol
           size={280}
-          color="#00D8A2"
+          color={brandColors.primaryPurple} // Cor do ícone principal
           name="tray.full.fill"
           style={styles.headerImage}
         />
@@ -106,39 +104,32 @@ export default function ListarScreen() {
         </ThemedText>
       </ThemedView>
 
-      <ThemedText>
-        Esta tela busca e lista todos os robôs cadastrados via{' '}
-        <ThemedText type="defaultSemiBold">GET</ThemedText>.
-      </ThemedText>
-
       <ThemedView style={styles.searchContainer}>
         <TextInput
-          style={[styles.searchInput, { color: Colors[colorScheme ?? 'light'].text }]}
+          style={styles.searchInput}
           placeholder="Pesquisar robôs..."
-          placeholderTextColor={Colors[colorScheme ?? 'light'].placeholder}
+          placeholderTextColor={brandColors.placeholder}
           value={searchQuery}
-          onChangeText={(text) => filterRobos(text)} // Chamada simplificada
-          accessibilityLabel="Pesquisar robôs por nome ou e-mail"
+          onChangeText={setSearchQuery}
+          accessibilityLabel="Pesquisar robôs por nome ou tecnologia"
         />
       </ThemedView>
 
-      {/* 4. O botão agora chama `refetch` para buscar os dados novamente */}
       <TouchableOpacity
         style={styles.fetchButton}
         onPress={() => refetch()}
-        accessibilityLabel="Buscar robôs manualmente"
+        accessibilityLabel="Buscar robôs novamente"
       >
-        <ThemedText type="defaultSemiBold" style={styles.fetchButtonText}>
-          Buscar Robôs
+        <ThemedText style={styles.fetchButtonText}>
+          Atualizar Lista
         </ThemedText>
       </TouchableOpacity>
 
       <Collapsible title="Lista de robôs">
-        {/* 5. Usamos `isLoading` e `isError` do useQuery */}
         {isLoading ? (
-          <ActivityIndicator size="large" color="#00D8A2" />
+          <ActivityIndicator size="large" color={brandColors.primaryPurple} />
         ) : isError ? (
-          <ThemedText style={{ textAlign: 'center', color: 'red' }}>
+          <ThemedText style={styles.errorText}>
             Ocorreu um erro ao buscar os robôs.
           </ThemedText>
         ) : (
@@ -151,20 +142,21 @@ export default function ListarScreen() {
                 activeOpacity={0.8}
                 onPress={() => handleEdit(item.id)}
               >
-                <IconSymbol name="person.fill" size={24} color="#00D8A2" />
+                <IconSymbol name="robot.fill" size={24} color={brandColors.primaryPurple} />
                 <View style={styles.roboInfo}>
-                  <ThemedText type="defaultSemiBold">
-                    {item.nome} {item.tecnologia}
+                  <ThemedText type="defaultSemiBold" style={styles.roboName}>
+                    {item.nome}
                   </ThemedText>
+                  <ThemedText style={styles.roboTech}>{item.tecnologia}</ThemedText>
                 </View>
                 <View
                   style={[
                     styles.statusDot,
-                    { backgroundColor: item.status === 'active' ? '#00D8A2' : '#FF6347' },
+                    { backgroundColor: item.status === 'active' ? brandColors.statusActive : brandColors.statusInactive },
                   ]}
                 />
                 <TouchableOpacity onPress={() => handleEdit(item.id)} accessibilityLabel="Editar robô">
-                  <IconSymbol name="pencil" size={20} color="#FFF" />
+                  <IconSymbol name="pencil" size={20} color={brandColors.lightText} />
                 </TouchableOpacity>
               </TouchableOpacity>
             )}
@@ -177,7 +169,83 @@ export default function ListarScreen() {
   );
 }
 
-// Seus estilos (styles) continuam exatamente os mesmos
-const styles = StyleSheet.create({
-  // ... (sem alterações aqui)
-});
+// --- CSS (StyleSheet) Dinâmico para o Tema ---
+const getStyles = (colorScheme: 'light' | 'dark' | null | undefined) =>
+  StyleSheet.create({
+    headerImage: {
+      bottom: -90,
+      left: -35,
+      position: 'absolute',
+    },
+    titleContainer: {
+      flexDirection: 'row',
+      gap: 8,
+      display: 'flex',  
+      alignSelf: 'center',
+      justifyContent: 'center',
+      marginTop: 20,
+    },
+    searchContainer: {
+      marginVertical: 20,
+    },
+    searchInput: {
+      height: 50,
+      backgroundColor: '#2C2C2E', // Fundo cinza escuro
+      borderRadius: 10,
+      paddingHorizontal: 15,
+      color: brandColors.lightText, // Texto branco
+      fontSize: 16,
+      borderWidth: 1,
+      borderColor: brandColors.darkGray,
+      display: 'flex',  
+      alignSelf: 'center',
+      justifyContent: 'center',
+      width: '50%',
+    },
+    fetchButton: {
+      backgroundColor: brandColors.primaryPurple, // Fundo roxo
+      paddingVertical: 12,
+      borderRadius: 10,
+      alignItems: 'center',
+      marginBottom: 20,
+      width: '50%',
+      display: 'flex',  
+      alignSelf: 'center',
+      justifyContent: 'center',
+    },
+    fetchButtonText: {
+      color: '#FFFFFF', // Texto branco
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
+    errorText: {
+      textAlign: 'center',
+      color: brandColors.statusInactive, // Vermelho para erro
+      marginTop: 10,
+    },
+    roboCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: brandColors.cardBackground, // Fundo do card
+      padding: 15,
+      borderRadius: 12,
+    },
+    roboInfo: {
+      flex: 1,
+      marginLeft: 15,
+    },
+    roboName: {
+      fontSize: 16,
+      color: brandColors.lightText,
+    },
+    roboTech: {
+      fontSize: 14,
+      color: brandColors.placeholder,
+    },
+    statusDot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+      marginHorizontal: 15,
+    },
+  });

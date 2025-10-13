@@ -1,72 +1,61 @@
+// app/(tabs)/_layout.tsx
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { Fonts } from '@/constants/fonts';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-// import { ThemeContext } from '@/app/context/theme-context'; // Removido se 'toggleColorScheme' não for usado aqui
-import { Fonts } from '@/constants/fonts';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// 1. Mantenha a criação do client aqui fora, para não ser recriado a cada renderização.
 const queryClient = new QueryClient();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  // const { toggleColorScheme } = useContext(ThemeContext); // Removido se não estiver em uso
+const brandColors = {
+  primaryPurple: '#6e42a8',
+  darkGray: '#2C2C2E',
+  inactiveGray: '#9E9E9E',
+};
 
+export default function TabLayout() {
   return (
-    // 2. Envolva o seu layout de <Tabs> com o QueryClientProvider.
     <QueryClientProvider client={queryClient}>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-          tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].inactive,
+          tabBarActiveTintColor: brandColors.primaryPurple,
+          tabBarInactiveTintColor: brandColors.inactiveGray,
           headerShown: false,
           tabBarStyle: [
             styles.tabBar,
             {
-              backgroundColor: colorScheme === 'dark' ? '#1E1E1E' : '#FFF',
-              borderTopColor: colorScheme === 'dark' ? '#444' : '#D0D0D0',
+              backgroundColor: brandColors.darkGray,
+              borderTopColor: '#444',
             },
           ],
           tabBarLabelStyle: {
-            fontSize: 12,
+            fontSize: 10,
+            fontWeight: '800',
             fontFamily: Fonts.rounded,
-            marginBottom: 4,
+            textAlign: 'center',
+            color: '#FFFFFF', // Removido para usar as cores active/inactive
           },
         }}>
         <Tabs.Screen
-          name="home" // nome do arquivo: si.tsx
+          name="home" // Corresponde a app/(tabs)/home.tsx
           options={{
             title: 'Principal',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
           }}
         />
         <Tabs.Screen
-          name="explore" // nome do arquivo: explore.tsx
+          name="explore" // Corresponde a app/(tabs)/explore.tsx
           options={{
             title: 'Explore',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="safari.fill" color={color} />,
           }}
         />
         <Tabs.Screen
-          name="listar" // nome do arquivo: listar.tsx
+          name="listar" // Corresponde a app/(tabs)/listar.tsx
           options={{
             title: 'Listar',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="tray.full.fill" color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="teste" // nome do arquivo: teste.tsx
-          options={{
-            title: 'Teste API',
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="ladybug.fill" color={color} />
-            ),
+            tabBarIcon: ({ color }) => <IconSymbol size={24} name="tray.full.fill" color={color} />,
           }}
         />
       </Tabs>
@@ -77,12 +66,8 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     borderTopWidth: 1,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
     height: 60,
     paddingBottom: 5,
+    paddingTop: 5,
   },
 });

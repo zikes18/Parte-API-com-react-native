@@ -30,29 +30,37 @@ const fetchRobos = async (): Promise<Robo[]> => {
   }
 };
 
-// Componente de barra de rolagem estilizado com a nova paleta de cores
+// NOVO: Componente para injetar os estilos da barra de rolagem personalizada.
 const CustomScrollbarStyles = () => (
   <style>
     {`
+      /* Para navegadores baseados em WebKit (Chrome, Safari, Edge) */
       .robot-list-container::-webkit-scrollbar {
-        width: 8px;
+        width: 8px; /* Largura da barra de rolagem */
       }
+
       .robot-list-container::-webkit-scrollbar-track {
-        background: transparent;
+        background: transparent; /* Fundo da barra de rolagem invisível */
       }
+
       .robot-list-container::-webkit-scrollbar-thumb {
-        background-color: transparent;
+        background-color: transparent; /* Indicador de rolagem invisível por padrão */
         border-radius: 10px;
       }
+
+      /* O indicador de rolagem aparece quando o mouse está sobre a lista */
       .robot-list-container:hover::-webkit-scrollbar-thumb {
-        background-color: #6e42a8; /* Roxo principal do 'enviar.tsx' */
+        background-color: #555;
       }
+
       .robot-list-container::-webkit-scrollbar-thumb:hover {
-        background-color: #583586; /* Tom mais escuro do roxo para hover */
+        background-color: #777; /* Cor ao passar o mouse sobre o indicador */
       }
+
+      /* Para Firefox */
       .robot-list-container {
         scrollbar-width: thin;
-        scrollbar-color: #6e42a8 transparent;
+        scrollbar-color: #555 transparent;
       }
     `}
   </style>
@@ -84,6 +92,7 @@ export default function ListarScreen() {
 
   return (
     <div style={styles.safeArea}>
+      {/* NOVO: Os estilos da barra de rolagem são adicionados aqui */}
       <CustomScrollbarStyles />
       <div style={styles.container}>
         <div style={styles.header}>
@@ -101,6 +110,7 @@ export default function ListarScreen() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
 
+        {/* ALTERADO: Adicionado um className para aplicar os estilos da barra de rolagem */}
         <div style={styles.listContainer} className="robot-list-container">
           {isLoading && <p style={styles.statusText}>Carregando robôs...</p>}
           {isError && <p style={{...styles.statusText, ...styles.errorText}}>Erro ao carregar: {error?.message}</p>}
@@ -129,16 +139,15 @@ export default function ListarScreen() {
   );
 }
 
-// ESTILOS ATUALIZADOS COM BASE NO 'enviar.tsx'
 const styles: { [key: string]: React.CSSProperties } = {
   safeArea: {
     display: 'flex',
     flex: 1,
-    backgroundColor: '#FFFFFF', // Fundo branco como no tema claro do 'enviar.tsx'
-    color: '#1c1c1e', // Cor de texto padrão escura
+    backgroundColor: '#FFFFFF',
+    color: '#121212',
     fontFamily: 'sans-serif',
-    height: '100vh',
-    overflow: 'hidden',
+    height: '100vh', // Garante que a div ocupe a altura toda
+    overflow: 'hidden', // Impede a rolagem do corpo da página
   },
   container: {
     padding: '20px',
@@ -148,6 +157,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     flexDirection: 'column',
     height: '100%',
+    backgroundColor: '#FFFFFF'
   },
   header: {
     display: 'flex',
@@ -159,39 +169,38 @@ const styles: { [key: string]: React.CSSProperties } = {
   title: {
     fontSize: '28px',
     fontWeight: 'bold',
-    color: '#1c1c1e', // Título com a cor de texto escura
+    color: '#FFFFFF',
   },
   buttonLink: {
-    backgroundColor: '#6e42a8', // Roxo principal do 'enviar.tsx'
+    backgroundColor: '#00A2FF',
     color: '#FFFFFF',
     textDecoration: 'none',
     padding: '10px 15px',
-    borderRadius: '10px', // Mesmo border-radius do botão principal
+    borderRadius: '8px',
     fontWeight: 'bold',
     textAlign: 'center',
-    transition: 'opacity 0.3s',
   },
   searchInput: {
-    width: '100%',
-    height: '50px',
-    backgroundColor: 'rgba(242, 242, 247, 0.9)', // Fundo de input do tema claro
-    borderRadius: '10px',
-    padding: '0 15px',
-    marginBottom: '24px',
-    color: '#1c1c1e', // Cor de texto escura
+    backgroundColor: '#FFFFFF',
+    border: '0.5px solid #4444',
+    borderRadius: '8px',
+    padding: '12px',
+    color: '#FFFFFF',
     fontSize: '16px',
-    border: '1px solid rgba(200, 200, 200, 0.5)', // Borda sutil como no 'enviar.tsx'
+    width: '100%',
     boxSizing: 'border-box',
+    marginBottom: '24px',
   },
+  // ALTERADO: A lista agora tem altura máxima e rolagem vertical.
   listContainer: {
-    flex: 1,
-    overflowY: 'auto',
-    paddingRight: '10px',
+    flex: 1, // Faz o container da lista ocupar o espaço restante
+    overflowY: 'auto', // Adiciona rolagem vertical quando o conteúdo excede o espaço
+    paddingRight: '10px', // Espaço para evitar que a barra de rolagem sobreponha o conteúdo
+    backgroundColor: '#FFFFFF'
   },
   statusText: {
     textAlign: 'center',
     fontSize: '16px',
-    color: '#a9a9a9', // Cor de placeholder para status
   },
   errorText: {
     color: '#FF6347',
@@ -202,10 +211,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: '#FFFFFF',
     padding: '15px',
     borderRadius: '8px',
-    border: '1px solid rgba(200, 200, 200, 0.6)', // Borda sutil nos cards
+    border: '0.5px solid #4444',
     marginBottom: '10px',
     listStyle: 'none',
-    color: '#1c1c1e', // Texto escuro padrão
+    color: '#000000',
   },
   roboInfo: {
     flex: 1,
@@ -214,15 +223,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '18px',
     fontWeight: 'bold',
     margin: 0,
-    color: '#6e42a8', // Nome do robô com a cor primária
   },
   roboTech: {
     fontSize: '14px',
-    color: '#3a3a3a', // Cinza escuro para a descrição da tecnologia
+    color: '#A0A0A0',
     margin: '4px 0 0 0',
   },
   editButton: {
-    backgroundColor: '#3a3a3a', // Cinza escuro como cor secundária
+    backgroundColor: '#f0ad4e',
     color: '#FFFFFF',
     textDecoration: 'none',
     padding: '8px 12px',
@@ -230,6 +238,5 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: 'bold',
     marginLeft: '10px',
     whiteSpace: 'nowrap',
-    transition: 'opacity 0.3s',
   },
 };

@@ -1,0 +1,178 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from 'react';
+
+// O ambiente de compilação não consegue resolver 'react-native',
+// então o componente foi reescrito usando elementos web padrão (JSX) para garantir a compatibilidade.
+// A lógica de chamada da API e gerenciamento de estado permanece a mesma.
+
+type NovoRobo = {
+  nome: string;
+  tecnologia: string; // ALTERADO: de 'tecnologias' para 'tecnologia' para corresponder à API.
+};
+
+const cadastrarRoboAPI = async (novoRobo: NovoRobo) => {
+  const response = await fetch('https://api-robo-production.up.railway.app/robos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(novoRobo),
+  });
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    let errorMessage = responseText;
+    try {
+      const errorData = JSON.parse(responseText);
+      errorMessage = errorData.message || JSON.stringify(errorData);
+    } catch (e) {
+      // Ignora o erro de parse, usa o texto puro.
+    }
+    throw new Error(`Falha ao cadastrar: ${response.status} - ${errorMessage}`);
+  }
+
+  return response.json();
+};
+
+export default function EnviarScreen() {
+  const [nome, setNome] = useState('');
+  // ALTERADO: O nome do estado foi atualizado para refletir a mudança.
+  const [tecnologia, setTecnologia] = useState('');
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: cadastrarRoboAPI,
+    onSuccess: (data) => {
+      alert(`Sucesso! Robô cadastrado com ID: ${data.id || 'N/A'}`);
+      queryClient.invalidateQueries({ queryKey: ['robos'] });
+      setNome('');
+      setTecnologia(''); // ALTERADO: Limpa o estado correto.
+    },
+    onError: (error: Error) => {
+      console.error('Erro detalhado:', error.message);
+      alert(`Erro ao Cadastrar: ${error.message}`);
+    },
+  });
+
+  function handleCadastro(event: React.FormEvent) {
+    event.preventDefault(); // Previne o recarregamento da página
+    if (!nome || !tecnologia) { // ALTERADO: Verifica o estado correto.
+      alert('Campos obrigatórios. Preencha todos os campos.');
+      return;
+    }
+    // ALTERADO: Envia o objeto com a chave 'tecnologia' (singular).
+    mutation.mutate({ nome, tecnologia });
+  }
+
+  return (
+    <div style={styles.safeArea}>
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <h1 style={styles.title}>Cadastrar Robô</h1>
+          <p style={styles.subtitle}>
+            Preencha os dados abaixo para cadastrar um novo robô no sistema.
+          </p>
+        </div>
+
+        <form onSubmit={handleCadastro} style={styles.form}>
+          <label style={styles.label} htmlFor="nome-robo">Nome do Robô</label>
+          <input
+            id="nome-robo"
+            style={styles.input}
+            placeholder="Digite o nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+          />
+
+          <label style={styles.label} htmlFor="tecnologias-robo">Tecnologias inclusas</label>
+          <textarea
+            id="tecnologias-robo"
+            style={{...styles.input, ...styles.textArea}}
+            placeholder="Descreva as tecnologias embarcadas"
+            value={tecnologia} // ALTERADO: Usa o estado correto.
+            onChange={(e) => setTecnologia(e.target.value)} // ALTERADO: Atualiza o estado correto.
+          />
+
+          <div style={styles.buttonContainer}>
+            <button
+              type="submit"
+              style={styles.button}
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? 'Cadastrando...' : 'Cadastrar Robô'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Estilos convertidos para objetos de estilo inline do React (CSS-in-JS)
+const styles: { [key: string]: React.CSSProperties } = {
+  safeArea: {
+    display: 'flex',
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    color: '#000000',
+    fontFamily: 'sans-serif',
+  },
+  container: {
+    padding: '20px',
+    width: '100%',
+    maxWidth: '600px',
+    margin: '0 auto',
+  },
+  header: {
+    marginBottom: '24px',
+  },
+  title: {
+    fontSize: '28px',
+    fontWeight: 'bold',
+    color: '#000000',
+    marginBottom: '8px',
+  },
+  subtitle: {
+    fontSize: '16px',
+    color: '#A0A0A0',
+  },
+  form: {
+    width: '100%',
+  },
+  label: {
+    display: 'block',
+    marginTop: '16px',
+    color: '#CCCCCC',
+    fontSize: '16px',
+    fontWeight: '500',
+    marginBottom: '8px',
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #444',
+    borderRadius: '8px',
+    padding: '12px',
+    color: '#FFFFFF',
+    fontSize: '16px',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  textArea: {
+    height: '120px',
+    resize: 'vertical',
+  },
+  buttonContainer: {
+    marginTop: '24px',
+    width: '100%',
+  },
+  button: {
+    backgroundColor: '#00A2FF',
+    color: '#FFFFFF',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '14px',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    width: '100%',
+  },
+};
+
